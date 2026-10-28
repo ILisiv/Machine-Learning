@@ -8,7 +8,9 @@ def generate_plots():
     latencies_b128 = [0.00, 8.00, 7.00] # in ms
     accuracies = [87.51, 89.40, 83.41]  # in %
 
-    os.makedirs("results", exist_ok=True)
+    # Explicitly save to lab04/results/
+    os.path.normpath("lab04/results")
+    os.makedirs("lab04/results", exist_ok=True)
 
     # Plot 1: Accuracy vs Parameters
     plt.figure(figsize=(8, 5))
@@ -19,7 +21,7 @@ def generate_plots():
     plt.ylabel("Test Accuracy (%)")
     plt.title("Accuracy vs. Model Parameters")
     plt.grid(True, linestyle='--', alpha=0.6)
-    plt.savefig("results/accuracy_vs_parameters.png")
+    plt.savefig("lab04/results/accuracy_vs_parameters.png")
     plt.close()
 
     # Plot 2: Accuracy vs Latency (Batch 128)
@@ -31,10 +33,10 @@ def generate_plots():
     plt.ylabel("Test Accuracy (%)")
     plt.title("Accuracy vs. Inference Latency (Batch 128)")
     plt.grid(True, linestyle='--', alpha=0.6)
-    plt.savefig("results/accuracy_vs_latency.png")
+    plt.savefig("lab04/results/accuracy_vs_latency.png")
     plt.close()
 
-    print("[+] Plots successfully generated and saved to results/ folder!")
+    print("[+] Plots successfully generated and saved to lab04/results/ folder!")
 
 if __name__ == "__main__":
     generate_plots()
