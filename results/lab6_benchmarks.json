@@ -1,0 +1,26 @@
+{
+    "num_workers_seconds": {
+        "0": 0.006722600199282169,
+        "1": 6.016169399954379,
+        "2": 4.818557499907911,
+        "4": 6.153744299896061
+    },
+    "batch_size_study": {
+        "32": {
+            "throughput_samples_per_sec": 37190.952400919654
+        },
+        "64": {
+            "throughput_samples_per_sec": 64632.133187594765
+        },
+        "128": {
+            "throughput_samples_per_sec": 66511.20800282327
+        },
+        "256": {
+            "throughput_samples_per_sec": 75928.06861904633
+        },
+        "512": {
+            "throughput_samples_per_sec": 80480.17713733799
+        }
+    },
+    "profiler_summary": "Profiler executed successfully. Key bottleneck identified in data loading/CPU-GPU transfer overhead for small batch sizes."
+}

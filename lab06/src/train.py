@@ -1,15 +1,13 @@
-# src/train.py
 import os
-import argparse
+import json
 import yaml
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import mlflow
 from dataset import get_dataloader
 from model import MLPModel
 
-def load_config(config_path):
+def load_config(config_path="configs/train_config.yaml"):
     if os.path.exists(config_path):
         with open(config_path, "r") as f:
             return yaml.safe_load(f)
@@ -25,14 +23,12 @@ def load_config(config_path):
         "checkpoint_dir": "results/checkpoints"
     }
 
-def train_pipeline(config_path="configs/train_config.yaml", resume_epoch=None):
-    config = load_config(config_path)
+def train_pipeline(resume_epoch=None):
+    config = load_config()
     torch.manual_seed(config["seed"])
     
     os.makedirs(config["checkpoint_dir"], exist_ok=True)
     os.makedirs("results", exist_ok=True)
-
-    mlflow.set_experiment(config["experiment_name"])
     
     dataloader = get_dataloader(batch_size=config["batch_size"], num_workers=config["num_workers"])
     model = MLPModel()
@@ -60,48 +56,51 @@ def train_pipeline(config_path="configs/train_config.yaml", resume_epoch=None):
             start_epoch = checkpoint['epoch'] + 1
             print(f"Resumed training from epoch {start_epoch}")
 
-    with mlflow.start_run():
-        mlflow.log_params(config)
+    metrics_log = []
 
-        for epoch in range(start_epoch, config["epochs"]):
-            model.train()
-            running_loss = 0.0
-            accumulation_steps = 4  # Gradient accumulation study
-            optimizer.zero_grad()
+    print("Starting training pipeline...")
+    for epoch in range(start_epoch, config["epochs"]):
+        model.train()
+        running_loss = 0.0
+        accumulation_steps = 4  # Gradient accumulation study
+        optimizer.zero_grad()
 
-            for i, (inputs, targets) in enumerate(dataloader):
-                outputs = model(inputs)
-                loss = criterion(outputs, targets)
-                loss = loss / accumulation_steps
-                loss.backward()
+        for i, (inputs, targets) in enumerate(dataloader):
+            outputs = model(inputs)
+            loss = criterion(outputs, targets)
+            loss = loss / accumulation_steps
+            loss.backward()
 
-                if (i + 1) % accumulation_steps == 0 or (i + 1) == len(dataloader):
-                    optimizer.step()
-                    optimizer.zero_grad()
+            if (i + 1) % accumulation_steps == 0 or (i + 1) == len(dataloader):
+                optimizer.step()
+                optimizer.zero_grad()
 
-                running_loss += loss.item() * accumulation_steps
+            running_loss += loss.item() * accumulation_steps
 
-            epoch_loss = running_loss / len(dataloader)
-            
-            if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
-                scheduler.step(epoch_loss)
-            else:
-                scheduler.step()
+        epoch_loss = running_loss / len(dataloader)
+        
+        if isinstance(scheduler, optim.lr_scheduler.ReduceLROnPlateau):
+            scheduler.step(epoch_loss)
+        else:
+            scheduler.step()
 
-            print(f"Epoch [{epoch+1}/{config['epochs']}], Loss: {epoch_loss:.4f}")
-            mlflow.log_metric("loss", epoch_loss, step=epoch)
+        print(f"Epoch [{epoch+1}/{config['epochs']}], Loss: {epoch_loss:.4f}")
+        metrics_log.append({"epoch": epoch + 1, "loss": epoch_loss})
 
-            # Checkpoint saving at epoch 3 or others
-            if (epoch + 1) in [3, config["epochs"]]:
-                ckpt_path = os.path.join(config["checkpoint_dir"], f"epoch_{epoch+1}.pt")
-                torch.save({
-                    'epoch': epoch,
-                    'model_state': model.state_dict(),
-                    'optimizer_state': optimizer.state_dict()
-                }, ckpt_path)
-                mlflow.log_artifact(ckpt_path)
+        # Save checkpoint at epoch 3 and final epoch
+        if (epoch + 1) in [3, config["epochs"]]:
+            ckpt_path = os.path.join(config["checkpoint_dir"], f"epoch_{epoch+1}.pt")
+            torch.save({
+                'epoch': epoch,
+                'model_state': model.state_dict(),
+                'optimizer_state': optimizer.state_dict()
+            }, ckpt_path)
+            print(f"Saved checkpoint to {ckpt_path}")
 
-    print("Training pipeline completed successfully.")
+    # Save training logs to results JSON
+    with open("results/training_metrics.json", "w") as f:
+        json.dump(metrics_log, f, indent=4)
+    print("Training pipeline completed successfully and saved to results/training_metrics.json!")
 
 if __name__ == "__main__":
     train_pipeline()
