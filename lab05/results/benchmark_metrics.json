@@ -1,0 +1,7 @@
+{
+    "eager_median_seconds": 0.027510499581694603,
+    "compiled_median_seconds": 0.023628600407391787,
+    "compile_mode": "torch.jit.trace",
+    "contiguous_matmul_seconds": 7.4107464998960495,
+    "non_contiguous_matmul_seconds": 7.595858599990606
+}
